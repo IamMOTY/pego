@@ -1,6 +1,8 @@
 package com.iammoty.pego
 
 import com.iammoty.pego.dao.DAOFacade
+import com.iammoty.pego.model.LoginResponse
+import com.iammoty.pego.model.User
 import io.ktor.application.*
 import io.ktor.html.*
 import io.ktor.http.*
@@ -23,12 +25,9 @@ fun Route.login(dao: DAOFacade, hash: (String) -> String) {
         val user = call.sessions.get<PeGoSession>()?.let { dao.user(it.userId) }
 
         if (user != null) {
-            call.redirect(UserPage(user.userId))
+            call.respond(LoginResponse(user))
         } else {
-            call.respondHtml {
-
-            }
-
+            call.respond(HttpStatusCode.Forbidden)
         }
     }
 
@@ -38,11 +37,9 @@ fun Route.login(dao: DAOFacade, hash: (String) -> String) {
      * or to the [UserPage] if the login was successful.
      */
     post<Login> {
-        val post = call.receive<Parameters>()
-        val userId = post["userId"] ?: return@post call.redirect(it)
-        val password = post["password"] ?: return@post call.redirect(it)
-
-        val error = Login(userId)
+        val post = call.receive<User>()
+        val userId = post.userId ?: return@post call.redirect(it)
+        val password = post.passwordHash ?: return@post call.redirect(it)
 
         val login = when {
             userId.length < 4 -> null
@@ -52,10 +49,10 @@ fun Route.login(dao: DAOFacade, hash: (String) -> String) {
         }
 
         if (login == null) {
-            call.redirect(error.copy(error = "Invalid username or password"))
+            call.respond(LoginResponse(error = "Invalid username or password"))
         } else {
             call.sessions.set(PeGoSession(login.userId))
-            call.redirect(UserPage(login.userId))
+            call.respond(LoginResponse(login))
         }
     }
 

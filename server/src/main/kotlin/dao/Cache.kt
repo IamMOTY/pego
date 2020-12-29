@@ -5,8 +5,8 @@ import org.ehcache.*
 import org.ehcache.config.*
 import org.ehcache.config.persistence.*
 import org.ehcache.config.units.*
-import org.joda.time.*
 import java.io.*
+import java.time.LocalDateTime
 
 /**
  * An Ehcache based implementation for the [DAOFacade] that uses a [delegate] facade and a [storagePath]
@@ -23,14 +23,14 @@ class DAOFacadeCache(val delegate: DAOFacade, val storagePath: File) : DAOFacade
         .with(CacheManagerPersistenceConfiguration(storagePath))
         .withCache(
             "ticketsCache",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder<Int, Ticket>()
+            CacheConfigurationBuilder.newCacheConfigurationBuilder<String, Ticket>()
                 .withResourcePools(
                     ResourcePoolsBuilder.newResourcePoolsBuilder()
                         .heap(1000, EntryUnit.ENTRIES)
                         .offheap(10, MemoryUnit.MB)
                         .disk(100, MemoryUnit.MB, true)
                 )
-                .buildConfig(Int::class.javaObjectType, Ticket::class.java)
+                .buildConfig(String::class.java, Ticket::class.java)
         )
         .withCache(
             "usersCache",
@@ -59,12 +59,13 @@ class DAOFacadeCache(val delegate: DAOFacade, val storagePath: File) : DAOFacade
         delegate.init()
     }
 
-    override fun createTicket(user: String, date: DateTime): Int {
+    override fun createTicket(user: String, date: LocalDateTime): Int {
         val id = delegate.createTicket(user, date)
-        val ticket = Ticket(id, user, date)
+        val ticket = Ticket(id, user, date.toString())
         ticketsCache.put(id, ticket)
         return id
     }
+
 
     override fun deleteTicket(id: Int) {
         delegate.deleteTicket(id)
@@ -117,9 +118,9 @@ class DAOFacadeCache(val delegate: DAOFacade, val storagePath: File) : DAOFacade
         return delegate.userByEmail(email)
     }
 
-    override fun userTickets(userId: String): List<Int> {
-        return delegate.userTickets(userId)
-    }
+//    override fun userTickets(userId: String): List<Int> {
+//        return delegate.userTickets(userId)
+//    }
 
     override fun close() {
         try {

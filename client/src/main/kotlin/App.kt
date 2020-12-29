@@ -1,8 +1,11 @@
+package com.iammoty.pego
+
 import com.ccfraser.muirwik.components.Colors
 import com.ccfraser.muirwik.components.mCssBaseline
 import com.ccfraser.muirwik.components.mThemeProvider
 import com.ccfraser.muirwik.components.styles.ThemeOptions
 import com.ccfraser.muirwik.components.styles.createMuiTheme
+import com.iammoty.pego.model.User
 import react.*
 
 interface AppState: RState {
@@ -30,3 +33,7 @@ class App(props: RProps) : RComponent<RProps, AppState>(props) {
 }
 
 fun RBuilder.app() = child(App::class) {}
+
+class UserProps : RProps {
+    var userAssigned: (User) -> Unit = {}
+}

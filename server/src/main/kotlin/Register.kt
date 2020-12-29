@@ -13,6 +13,7 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.sessions.*
 import io.ktor.util.*
+import kotlinx.serialization.json.Json
 
 /**
  * Register routes for user registration in the [Register] route (/register)
@@ -29,18 +30,24 @@ fun Route.register(dao: DAOFacade, hashFunction: (String) -> String) {
      */
     post<Register> {
         // get current from session data if any
+        println("Got register request")
         val user = call.sessions.get<PeGoSession>()?.let { dao.user(it.userId) }
         // user already logged in? redirect to user page.
-        if (user != null) return@post call.redirect(UserPage(user.userId))
-
+        println(user)
+        if (user != null) return@post call.redirect(Login(user.userId))
+        println("User is not logged")
         // receive post data
-        // TODO: use conneg when it's ready and `call.receive<Register>()`
-        val registration = call.receive<Parameters>()
-        val userId = registration["userId"] ?: return@post call.redirect(it)
-        val password = registration["password"] ?: return@post call.redirect(it)
-        val displayName = registration["displayName"] ?: return@post call.redirect(it)
-        val email = registration["email"] ?: return@post call.redirect(it)
+        try {
+            val registration = call.receive<User>()
 
+        println("json parse completed successfully")
+
+        println(registration)
+        val userId = registration.userId ?: return@post call.redirect(it)
+        val password = registration.passwordHash ?: return@post call.redirect(it)
+        val displayName = registration.displayName ?: return@post call.redirect(it)
+        val email = registration.email ?: return@post call.redirect(it)
+        val role = registration.role ?: return@post call.redirect(it)
         // prepare location class for error if any
         val error = Register(userId, displayName, email)
 
@@ -51,8 +58,7 @@ fun Route.register(dao: DAOFacade, hashFunction: (String) -> String) {
             dao.user(userId) != null -> call.redirect(error.copy(error = "User with the following login is already registered"))
             else -> {
                 val hash = hashFunction(password)
-                val newUser = User(userId, email, displayName, hash, Role.PASSENGER, 0)
-
+                val newUser = User(userId, email, displayName, hash, role, 0)
                 try {
                     dao.createUser(newUser)
                 } catch (e: Throwable) {
@@ -68,21 +74,16 @@ fun Route.register(dao: DAOFacade, hashFunction: (String) -> String) {
                 }
 
                 call.sessions.set(PeGoSession(newUser.userId))
-                call.redirect(UserPage(newUser.userId))
+//                call.redirect(UserPage(newUser.userId))
             }
+        }
+        } catch (e: Exception) {
+            println(e)
         }
     }
 
-    /**
-     * A GET request would show the registration form (with an error if specified by the URL in the case there was an error in the form processing)
-     * If the user is already logged, it redirects the client to the [UserPage] instead.
-     */
+
     get<Register> {
-        val user = call.sessions.get<PeGoSession>()?.let { dao.user(it.userId) }
-        if (user != null) {
-            call.redirect(UserPage(user.userId))
-        } else {
-            call.respondHtml {  }
-        }
+        call.respond(HttpStatusCode.MethodNotAllowed)
     }
 }

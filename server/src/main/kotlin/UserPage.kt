@@ -9,6 +9,8 @@ import io.ktor.locations.*
 import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.sessions.*
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /**
  * Register the [UserPage] route '/user/{user}',
@@ -26,12 +28,10 @@ fun Route.userPage(dao: DAOFacade) {
         if (pageUser == null) {
             call.respond(HttpStatusCode.NotFound.description("User ${it.user} doesn't exist"))
         } else {
-            val tickets = dao.userTickets(it.user).map { dao.getTicket(it) }
+//            val tickets = dao.userTickets(it.user).map { dao.getTicket(it) }
 //            val etag = (user?.userId ?: "") + "_" + kweets.map { it.text.hashCode() }.hashCode().toString()
 
-            call.respond(HtmlContent{
-
-            })
+            call.respond(Json.encodeToString(pageUser))
         }
     }
 }

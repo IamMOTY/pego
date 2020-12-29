@@ -2,55 +2,19 @@ package com.iammoty.pego.dao
 
 import com.iammoty.pego.model.*
 import org.jetbrains.exposed.sql.*
-import org.joda.time.*
-import java.io.*
+import org.jetbrains.exposed.sql.transactions.transaction
+import java.io.File
+import java.time.LocalDateTime
 
-interface DAOFacade : Closeable {
-    /**
-     * Initializes the Users and Tickets tables.
-     */
-    fun init()
 
-    /**
-     * Creates a Ticket from a specific [user] name, an optional d [date] that would default to the current time.
-     */
-    fun createTicket(user: String, date: DateTime = DateTime.now()): Int
-
-    /**
-     * Deletes a Ticket form its [id].
-     */
-    fun deleteTicket(id: Int)
-
-    /**
-     * Gets the DAO object representation of a ticket based from its [id].
-     */
-    fun getTicket(id: Int): Ticket
-
-    /**
-     * Obtains a list of integral ids of tickets from a specific user identified by its [userId].
-     *
-     */
-    fun userTickets(userId: String): List<Int>
-
-    /**
-     * Tries to get an user from its [userId] and optionally is password [hash]
-     */
-    fun user(userId: String, hash: String? = null): User?
-
-    /**
-     * Tries to get an user from its [email].
-     *
-     * Returns null if no user has this [email] associated.
-     */
-    fun userByEmail(email: String): User?
-
-    /**
-     * Creates a new [user] in the database from its object [User] representation.
-     */
-    fun createUser(user: User)
-}
-
-class DAOFacadeDatabase(val db: Database = Database.connect("jdbc:h2:mem:test", driver = "org.h2.Driver")) : DAOFacade {
+class DAOFacadeDatabase(
+    val db: Database = Database.connect(
+        "jdbc:h2:mem:test",
+        driver = "org.h2.Driver",
+        user = "root",
+        password = ""
+    )
+) : DAOFacade {
     constructor(dir: File) : this(
         Database.connect(
             "jdbc:h2:file:${dir.canonicalFile.absolutePath}",
@@ -59,43 +23,44 @@ class DAOFacadeDatabase(val db: Database = Database.connect("jdbc:h2:mem:test", 
     )
 
     override fun init() {
-        db.transaction {
-            create(Users, Tickets)
+        transaction(db) {
+            SchemaUtils.create(Users, Tickets)
         }
     }
 
-    override fun createTicket(user: String, date: DateTime): Int {
-        return db.transaction {
+    override fun createTicket(user: String, date: LocalDateTime): Int {
+        return transaction(db) {
             Tickets.insert {
                 it[Tickets.user] = user
-                it[Tickets.date] = date
-            }.generatedKey ?: throw IllegalStateException("No generated key returned")
+            } get Tickets.id
         }
     }
 
+
     override fun deleteTicket(id: Int) {
-        db.transaction {
+        transaction(db) {
             Tickets.deleteWhere { Tickets.id.eq(id) }
         }
     }
 
-    override fun getTicket(id: Int) = db.transaction {
+    override fun getTicket(id: Int) = transaction(db) {
         val row = Tickets.select { Tickets.id.eq(id) }.single()
-        Ticket(id, row[Tickets.user], row[Tickets.date])
+        Ticket(id, row[Tickets.user], row[Tickets.date].toString())
     }
 
-    override fun createUser(user: User) = db.transaction {
+    override fun createUser(user: User) = transaction(db) {
         Users.insert {
             it[id] = user.userId
-            it[displayName] = user.displayName
             it[email] = user.email
+            it[displayName] = user.displayName
             it[passwordHash] = user.passwordHash
             it[role] = user.role
+            it[balance] = user.balance
         }
         Unit
     }
 
-    override fun user(userId: String, hash: String?) = db.transaction {
+    override fun user(userId: String, hash: String?) = transaction(db) {
         Users.select { Users.id.eq(userId) }
             .mapNotNull {
                 if (hash == null || it[Users.passwordHash] == hash) {
@@ -113,7 +78,7 @@ class DAOFacadeDatabase(val db: Database = Database.connect("jdbc:h2:mem:test", 
             }.singleOrNull()
     }
 
-    override fun userByEmail(email: String) = db.transaction {
+    override fun userByEmail(email: String) = transaction(db) {
         Users.select { Users.id.eq(email) }
             .map {
                 User(
@@ -128,10 +93,10 @@ class DAOFacadeDatabase(val db: Database = Database.connect("jdbc:h2:mem:test", 
             .singleOrNull()
     }
 
-    override fun userTickets(userId: String) = db.transaction {
-        Tickets.slice(Tickets.id).select { Tickets.user.eq(userId) }.orderBy(Tickets.date, false).limit(100)
-            .map { it[Tickets.id] }
-    }
+//    override fun userTickets(userId: String) = transaction(db) {
+//        Tickets.slice(Tickets.id).select { Tickets.user.eq(userId) }.orderBy(Tickets.date, false).limit(100)
+//            .map { it[Tickets.id] }
+//    }
 
     override fun close() {
     }

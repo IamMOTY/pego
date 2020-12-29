@@ -1,3 +1,5 @@
+package com.iammoty.pego
+
 import com.ccfraser.muirwik.components.*
 import com.ccfraser.muirwik.components.button.mIconButton
 import com.ccfraser.muirwik.components.dialog.mDialog
@@ -7,6 +9,7 @@ import com.ccfraser.muirwik.components.list.mListItemWithIcon
 import com.ccfraser.muirwik.components.styles.Breakpoint
 import com.ccfraser.muirwik.components.styles.down
 import com.ccfraser.muirwik.components.styles.up
+import com.iammoty.pego.model.User
 import kotlinext.js.js
 import kotlinext.js.jsObject
 import kotlinx.css.*
@@ -29,6 +32,7 @@ interface MainFrameState : RState {
     var drawerOpen: Boolean
     var loginRegisterDialogOpen: Boolean
     var loginRegisterDialogView: String
+    var user: User?
 }
 
 class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameState>(props) {
@@ -90,7 +94,7 @@ class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameSta
                                     onClick = { setState { drawerOpen = true } })
                             }
 
-                            mToolbarTitle("PeGo - ${state.drawerOpen}")
+                            mToolbarTitle("PeGo - ${state.user?.displayName}")
                             mIconButton("account_circle", onClick = { setState { loginRegisterDialogOpen = true } }) { }
                         }
                     }
@@ -227,7 +231,7 @@ class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameSta
                             }
                             when (state.loginRegisterDialogView) {
                                 "Login" -> loginTab()
-                                "Register" -> registerTab()
+                                "Register" -> registerTab { onUserAssigned(it) }
                             }
                         }
                     }
@@ -264,6 +268,12 @@ class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameSta
             }
         }
     }
+    private fun onUserAssigned(newUser: User) {
+        setState {
+            user = newUser
+            view = "Intro"
+        }
+    }
 }
 
 fun RBuilder.spacer() {
@@ -283,7 +293,9 @@ fun RBuilder.spacer() {
 }
 
 
+
 fun RBuilder.mainFrame(initialView: String, onThemeSwitch: () -> Unit) = child(MainFrame::class) {
     attrs.onThemeSwitch = onThemeSwitch
     attrs.initialView = initialView
 }
+

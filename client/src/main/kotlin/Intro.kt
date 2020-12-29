@@ -1,3 +1,5 @@
+package com.iammoty.pego
+
 import com.ccfraser.muirwik.components.MTypographyVariant
 import com.ccfraser.muirwik.components.mTypography
 import com.ccfraser.muirwik.components.spacingUnits

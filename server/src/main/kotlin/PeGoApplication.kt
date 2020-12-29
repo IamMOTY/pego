@@ -2,10 +2,13 @@ package com.iammoty.pego
 
 import com.iammoty.pego.dao.*
 import com.iammoty.pego.model.*
+import com.iammoty.pego.styles
 import com.mchange.v2.c3p0.*
 import io.ktor.application.*
 import io.ktor.features.*
+import io.ktor.gson.*
 import io.ktor.http.*
+import io.ktor.http.content.*
 import io.ktor.locations.*
 import io.ktor.request.*
 import io.ktor.response.*
@@ -16,6 +19,7 @@ import org.h2.*
 import org.jetbrains.exposed.sql.*
 import java.io.*
 import java.net.*
+import java.text.DateFormat
 import java.util.concurrent.*
 import javax.crypto.*
 import javax.crypto.spec.*
@@ -57,9 +61,10 @@ val dir = File("build/db")
  */
 val pool = ComboPooledDataSource().apply {
     driverClass = Driver::class.java.name
-    jdbcUrl = "jdbc:h2:file:${dir.canonicalFile.absolutePath}"
-    user = ""
-    password = ""
+    jdbcUrl = "jdbc:mysql://kotlin.chex8buhxmiy.us-east-1.rds.amazonaws.com:3306/kotlin"
+    user = "admin"
+    password = "hujikolp"
+//    dataSourceName = "database-2"
 }
 
 /**
@@ -71,8 +76,8 @@ val hmacKey = SecretKeySpec(hashKey, "HmacSHA1")
  * Constructs a facade with the database, connected to the DataSource configured earlier with the [dir]
  * for storing the database.
  */
-val dao: DAOFacade = DAOFacadeCache(DAOFacadeDatabase(Database.connect(pool)), File(dir.parentFile, "ehcache"))
-
+//val dao: DAOFacade = DAOFacadeCache(DAOFacadeDatabase(Database.connect(pool)), File(dir.parentFile, "ehcache"))
+val dao: DAOFacade = DAOFacadeDatabase(Database.connect(pool))
 /**
  * Entry Point of the application. This function is referenced in the
  * resources/application.conf file inside the ktor.application.modules.
@@ -80,6 +85,7 @@ val dao: DAOFacade = DAOFacadeCache(DAOFacadeDatabase(Database.connect(pool)), F
  * For more information about this file: https://ktor.io/servers/configuration.html#hocon-file
  */
 fun Application.main() {
+
     dao.init()
     environment.monitor.subscribe(ApplicationStopped) { pool.close() }
     mainWithDependencies(dao)
@@ -91,10 +97,17 @@ fun Application.main() {
  */
 fun Application.mainWithDependencies(dao: DAOFacade) {
     install(DefaultHeaders)
+    install(DataConversion)
     install(CallLogging)
     install(ConditionalHeaders)
     install(PartialContent)
     install(Locations)
+    install(ContentNegotiation) {
+        gson {
+            setDateFormat(DateFormat.LONG)
+            setPrettyPrinting()
+        }
+    }
     // Configure the session to be represented by a [KweetSession],
     // using the SESSION cookie to store it, and transforming it to be authenticated with the [hashKey].
     // it is sent in plain text, but since it is authenticated can't be modified without knowing the secret [hashKey].
@@ -111,7 +124,12 @@ fun Application.mainWithDependencies(dao: DAOFacade) {
     // They are split in several methods and files, so it can scale for larger
     // applications keeping a reasonable amount of lines per file.
     routing {
+        static("/") {
+            resources("/")
+        }
+
         styles()
+//        scripts()
         index(dao)
 //        postNew(dao, hashFunction)
 //        delete(dao, hashFunction)
