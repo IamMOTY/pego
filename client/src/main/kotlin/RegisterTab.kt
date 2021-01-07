@@ -1,6 +1,7 @@
 package com.iammoty.pego
 
 import LoginOrRegisterFailedException
+import async
 import com.ccfraser.muirwik.components.*
 import com.ccfraser.muirwik.components.button.MButtonVariant
 import com.ccfraser.muirwik.components.button.mButton
@@ -8,16 +9,20 @@ import com.ccfraser.muirwik.components.button.mIconButton
 import com.ccfraser.muirwik.components.form.MFormControlVariant
 import com.ccfraser.muirwik.components.form.mFormControlLabel
 import com.ccfraser.muirwik.components.form.mFormGroup
+import com.ccfraser.muirwik.components.lab.alert.MAlertSeverity
+import com.ccfraser.muirwik.components.lab.alert.mAlert
 import com.ccfraser.muirwik.components.transitions.MTransitionProps
 import com.ccfraser.muirwik.components.transitions.SimpleTransitionDuration
 import com.ccfraser.muirwik.components.transitions.SlideTransitionDirection
 import com.ccfraser.muirwik.components.transitions.mSlide
 import com.iammoty.pego.model.Role
 import com.iammoty.pego.model.User
+import kotlinx.browser.window
 import kotlinx.css.*
 import kotlinx.html.InputType
 import react.*
 import react.dom.div
+import react.dom.span
 import register
 import styled.StyleSheet
 import styled.css
@@ -31,7 +36,7 @@ interface RegisterTabState : RState {
     var password: String
     var isController: Boolean
     var errorMessage: String
-    var snapbackOpen: Boolean
+    var snackbarOpen: Boolean
     var disabled: Boolean
 }
 
@@ -45,7 +50,7 @@ class RegisterTab : RComponent<UserProps, RegisterTabState>() {
         password = ""
         isController = false
         errorMessage = ""
-        snapbackOpen = false
+        snackbarOpen = false
         disabled = false
     }
 
@@ -129,12 +134,17 @@ class RegisterTab : RComponent<UserProps, RegisterTabState>() {
                 }
             )
 
-            mSnackbar(state.errorMessage, state.snapbackOpen) {
+            mSnackbar(message = state.errorMessage, state.snackbarOpen) {
                 attrs.transitionComponent = SlideTransitionComponent::class
-                attrs.action = div {
+                attrs.action = styledDiv {
+                    css {
+                        display = Display.flex
+                        justifyContent = JustifyContent.center
+                    }
+                    mAlert(title="Registration failed", message = state.errorMessage, severity = MAlertSeverity.error)
                     mIconButton(
                         "close",
-                        onClick = { setState { errorMessage = ""; snapbackOpen = false } },
+                        onClick = { setState { errorMessage = ""; snackbarOpen = false } },
                         color = MColor.inherit
                     )
                 }
@@ -149,15 +159,16 @@ class RegisterTab : RComponent<UserProps, RegisterTabState>() {
         setState {
             disabled = true
         }
-        try {
-            val user = register(state.userId, state.password, state.displayName, state.email, getRole())
-            println("User is received - $user")
-            registered(user)
-        } catch (e: Exception) {
-            registrationFailed(e)
-        }
+        async {
+           with(state) {
+               val user = register(userId, password, displayName, email, getRole())
+               println(user)
+               registered(user)
+           }
+       }.catch { err -> registrationFailed(err) }
 
     }
+
 
     private fun getRole() = if (state.isController) Role.CONTROLLER else Role.PASSENGER
 
@@ -168,15 +179,17 @@ class RegisterTab : RComponent<UserProps, RegisterTabState>() {
     private fun registrationFailed(err: Throwable) {
         if (err is LoginOrRegisterFailedException) {
             setState {
-                errorMessage = err.message ?: ""
-                snapbackOpen = true
+                errorMessage = err.message ?: "unknown error"
+                snackbarOpen = true
                 disabled = false
             }
+            println("${err.message} -- caught")
+            println("${state.errorMessage} -- current state")
         } else {
             console.log("Registration failed", err)
             setState {
                 errorMessage = "Registration failed"
-                snapbackOpen = true
+                snackbarOpen = true
             }
         }
     }

@@ -2,8 +2,8 @@ package com.iammoty.pego
 
 
 import com.iammoty.pego.dao.DAOFacade
+import com.iammoty.pego.model.UserResponse
 import io.ktor.application.*
-import io.ktor.html.*
 import io.ktor.http.*
 import io.ktor.locations.*
 import io.ktor.response.*
@@ -25,13 +25,14 @@ fun Route.userPage(dao: DAOFacade) {
         val user = call.sessions.get<PeGoSession>()?.let { dao.user(it.userId) }
         val pageUser = dao.user(it.user)
 
-        if (pageUser == null) {
+        if (user == null || pageUser == null) {
+            println("User not found")
             call.respond(HttpStatusCode.NotFound.description("User ${it.user} doesn't exist"))
         } else {
 //            val tickets = dao.userTickets(it.user).map { dao.getTicket(it) }
 //            val etag = (user?.userId ?: "") + "_" + kweets.map { it.text.hashCode() }.hashCode().toString()
-
-            call.respond(Json.encodeToString(pageUser))
+            println("Responding user $pageUser")
+            call.respond(Json.encodeToString(UserResponse(pageUser)))
         }
     }
 }

@@ -1,29 +1,30 @@
 package com.iammoty.pego
 
 import LoginOrRegisterFailedException
+import async
 import com.ccfraser.muirwik.components.*
 import com.ccfraser.muirwik.components.button.MButtonVariant
 import com.ccfraser.muirwik.components.button.mButton
 import com.ccfraser.muirwik.components.button.mIconButton
 import com.ccfraser.muirwik.components.form.MFormControlVariant
 import com.ccfraser.muirwik.components.form.mFormGroup
+import com.ccfraser.muirwik.components.lab.alert.MAlertSeverity
+import com.ccfraser.muirwik.components.lab.alert.mAlert
 import com.iammoty.pego.model.User
-import kotlinx.css.marginLeft
-import kotlinx.css.marginRight
-import kotlinx.css.paddingBottom
+import kotlinx.css.*
 import kotlinx.html.InputType
 import login
 import react.*
-import react.dom.div
 import styled.StyleSheet
 import styled.css
+import styled.styledDiv
 
 interface LoginTabState : RState {
     var userId: String
     var password: String
     var disabled: Boolean
     var errorMessage: String
-    var snapbackOpen: Boolean
+    var snackbarOpen: Boolean
 }
 
 
@@ -32,7 +33,7 @@ class LoginTab : RComponent<UserProps, LoginTabState>() {
         userId = ""
         password = ""
         disabled = false
-        snapbackOpen = false
+        snackbarOpen = false
         errorMessage = ""
     }
 
@@ -48,7 +49,12 @@ class LoginTab : RComponent<UserProps, LoginTabState>() {
                 paddingBottom = 3.spacingUnits
             }
             val formType = MFormControlVariant.outlined
-            mTextField(label = "Login", required = true, disabled = state.disabled, variant = formType) {
+            mTextField(
+                label = "Login",
+                required = true,
+                disabled = state.disabled,
+                variant = formType,
+                onChange = { val value = it.targetInputValue; setState { userId = value } }) {
                 css(themeStyles.textField)
             }
             mTextField(
@@ -57,22 +63,33 @@ class LoginTab : RComponent<UserProps, LoginTabState>() {
                 autoComplete = "current-password",
                 disabled = state.disabled,
                 required = true,
-                variant = formType
+                variant = formType,
+                onChange = { val value = it.targetInputValue; setState { password = value } }
             ) {
                 css(themeStyles.textField)
             }
 
-            mButton(variant = MButtonVariant.outlined, caption = "Submit", disabled = state.disabled, color = MColor.primary, onClick = {
-                doLogin()
-                it.preventDefault()
-            })
+            mButton(
+                variant = MButtonVariant.outlined,
+                caption = "Submit",
+                disabled = state.disabled,
+                color = MColor.primary,
+                onClick = {
+                    doLogin()
+                    it.preventDefault()
+                })
 
-            mSnackbar(state.errorMessage, state.snapbackOpen) {
+            mSnackbar(message = state.errorMessage, state.snackbarOpen) {
                 attrs.transitionComponent = RegisterTab.SlideTransitionComponent::class
-                attrs.action = div {
+                attrs.action = styledDiv {
+                    css {
+                        display = Display.flex
+                        justifyContent = JustifyContent.center
+                    }
+                    mAlert(title="Login failed", message = state.errorMessage, severity = MAlertSeverity.error)
                     mIconButton(
                         "close",
-                        onClick = { setState { errorMessage = ""; snapbackOpen = false } },
+                        onClick = { setState { errorMessage = ""; snackbarOpen = false } },
                         color = MColor.inherit
                     )
                 }
@@ -84,12 +101,13 @@ class LoginTab : RComponent<UserProps, LoginTabState>() {
         setState {
             disabled = true
         }
-        try {
-            val user = login(state.userId, state.password)
-            loggedIn(user)
-        } catch (e: Exception) {
-            loginFailed(e)
-        }
+        async {
+            with(state) {
+                val user = login(userId, password)
+                println(user)
+                loggedIn(user)
+            }
+        }.catch { err -> loginFailed(err) }
     }
 
     private fun loggedIn(user: User) {
@@ -100,8 +118,8 @@ class LoginTab : RComponent<UserProps, LoginTabState>() {
         if (err is LoginOrRegisterFailedException) {
             setState {
                 disabled = false
-                errorMessage = err.message ?: ""
-                snapbackOpen = true
+                errorMessage = err.message.toString()
+                snackbarOpen = true
                 disabled = false
             }
         } else {

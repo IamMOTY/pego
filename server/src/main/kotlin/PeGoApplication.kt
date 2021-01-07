@@ -61,7 +61,7 @@ val dir = File("build/db")
  */
 val pool = ComboPooledDataSource().apply {
     driverClass = Driver::class.java.name
-    jdbcUrl = "jdbc:mysql://kotlin.chex8buhxmiy.us-east-1.rds.amazonaws.com:3306/kotlin"
+    jdbcUrl = "jdbc:mysql://kotlin-db.chex8buhxmiy.us-east-1.rds.amazonaws.com:3306/kotlin-db"
     user = "admin"
     password = "hujikolp"
 //    dataSourceName = "database-2"
@@ -133,7 +133,7 @@ fun Application.mainWithDependencies(dao: DAOFacade) {
         index(dao)
 //        postNew(dao, hashFunction)
 //        delete(dao, hashFunction)
-//        userPage(dao)
+        userPage(dao)
 //        viewKweet(dao, hashFunction)
 
         login(dao, hashFunction)

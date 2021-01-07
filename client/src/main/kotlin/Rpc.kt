@@ -1,8 +1,8 @@
+import com.iammoty.pego.model.UserResponse
 import com.iammoty.pego.model.Role
 import com.iammoty.pego.model.User
-import kotlinext.js.asJsObject
 import kotlinx.browser.window
-import org.w3c.dom.url.*
+import kotlinx.coroutines.await
 import org.w3c.fetch.*
 import kotlin.js.*
 import kotlinx.serialization.json.*
@@ -13,7 +13,7 @@ import kotlinx.serialization.*
 //    getAndParseResult("/", null, ::parseIndexResponse)
 
 
-fun register(userId: String, password: String, displayName: String, email: String, role: Role): User =
+suspend fun register(userId: String, password: String, displayName: String, email: String, role: Role): User =
     postAndParseResult(
         "/register",
         kotlinx.serialization.json.Json.encodeToString(User(userId, email, displayName, password, role)),
@@ -24,14 +24,15 @@ fun register(userId: String, password: String, displayName: String, email: Strin
 //        json.count
 //    })
 
-fun checkSession(): User =
+suspend fun checkSession(): User =
     getAndParseResult("/login", null, ::parseLoginOrRegisterResponse)
 
-fun login(userId: String, password: String): User =
-    postAndParseResult("/login", URLSearchParams().apply {
-        append("userId", userId)
-        append("password", password)
-    }, ::parseLoginOrRegisterResponse)
+suspend fun login(userId: String, password: String): User =
+    postAndParseResult(
+        "/login",
+        kotlinx.serialization.json.Json.encodeToString(User(userId = userId, passwordHash = password)),
+        ::parseLoginOrRegisterResponse
+    )
 
 // fun postThoughtPrepare(): PostThoughtToken =
 //    getAndParseResult("/post-new", null, ::parseNewPostTokenResponse)
@@ -79,27 +80,34 @@ fun logoutUser() {
 //}
 
 private fun parseLoginOrRegisterResponse(json: dynamic): User {
-    if (json.error != null) {
+    val dec = kotlinx.serialization.json.Json.decodeFromDynamic<UserResponse>(json)
+    println(dec)
+    if (dec.error != null) {
+        println("error isn't empty ${dec.error}")
         throw LoginOrRegisterFailedException(json.error.toString())
     }
-
-    return User(json.user.userId, json.user.email, json.user.displayName, json.user.passwordHash, json.user.role, json.user.balance)
+    println("user parsed successfully")
+    return dec.user!!
 }
 
 class LoginOrRegisterFailedException(message: String) : Throwable(message)
 
- fun <T> postAndParseResult(url: String, body: dynamic, parse: (dynamic) -> T): T =
+ suspend fun <T> postAndParseResult(url: String, body: dynamic, parse: (dynamic) -> T): T =
     requestAndParseResult("POST", url, body, parse)
 
- fun <T> getAndParseResult(url: String, body: dynamic, parse: (dynamic) -> T): T =
+ suspend fun <T> getAndParseResult(url: String, body: dynamic, parse: (dynamic) -> T): T =
     requestAndParseResult("GET", url, body, parse)
 
- fun <T> requestAndParseResult(method: String, url: String, body: dynamic, parse: (dynamic) -> T): T {
-    val response = window.fetch(url, object: RequestInit {
+ suspend fun <T> requestAndParseResult(method: String, url: String, body: dynamic, parse: (dynamic) -> T): T {
+    val response = Promise.resolve(window.fetch(url, object: RequestInit {
         override var method: String? = method
         override var body: dynamic = body
         override var credentials: RequestCredentials? = "same-origin".asDynamic()
-        override var headers: dynamic = json("Accept" to "application/json", "Content-Type" to "application/json;charset=UTF-8")
-    })
-    return parse(response.asJsObject())
+        override var headers: dynamic = json("Accept" to "application/json")
+    }).then {response->
+        response.json()
+    }.then {
+        it
+    }).await()
+    return parse(response)
 }

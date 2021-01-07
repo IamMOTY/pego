@@ -2,7 +2,7 @@ package com.iammoty.pego
 
 
 import com.iammoty.pego.dao.DAOFacade
-import com.iammoty.pego.model.Role
+import com.iammoty.pego.model.UserResponse
 import com.iammoty.pego.model.User
 import io.ktor.application.*
 import io.ktor.html.*
@@ -13,6 +13,7 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.sessions.*
 import io.ktor.util.*
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
 /**
@@ -38,25 +39,27 @@ fun Route.register(dao: DAOFacade, hashFunction: (String) -> String) {
         println("User is not logged")
         // receive post data
         try {
-            val registration = call.receive<User>()
+            val registration = Json.decodeFromString<User>(call.receiveText())
 
         println("json parse completed successfully")
 
         println(registration)
-        val userId = registration.userId ?: return@post call.redirect(it)
-        val password = registration.passwordHash ?: return@post call.redirect(it)
-        val displayName = registration.displayName ?: return@post call.redirect(it)
-        val email = registration.email ?: return@post call.redirect(it)
-        val role = registration.role ?: return@post call.redirect(it)
+        val userId = registration.userId
+        val password = registration.passwordHash
+        val displayName = registration.displayName
+        val email = registration.email
+        val role = registration.role
         // prepare location class for error if any
-        val error = Register(userId, displayName, email)
-
+//        val error = Register(userId, displayName, email)
+            val error = UserResponse(user)
         when {
-            password.length < 6 -> call.redirect(error.copy(error = "Password should be at least 6 characters long"))
-            userId.length < 4 -> call.redirect(error.copy(error = "Login should be at least 4 characters long"))
-            !userNameValid(userId) -> call.redirect(error.copy(error = "Login should be consists of digits, letters, dots or underscores"))
-            dao.user(userId) != null -> call.redirect(error.copy(error = "User with the following login is already registered"))
+            password.length < 6 -> call.respond(error.copy(error = "Password should be at least 6 characters long"))
+            userId.length < 4 -> call.respond(error.copy(error = "Login should be at least 4 characters long"))
+            !userNameValid(userId) -> call.respond(error.copy(error = "Login should be consists of digits, letters, dots or underscores"))
+            dao.user(userId) != null -> call.respond(error.copy(error = "User with the following login is already registered"))
+            dao.userByEmail(email) != null -> call.respond(error.copy(error = "User with the following email is already registered"))
             else -> {
+                println("Ok")
                 val hash = hashFunction(password)
                 val newUser = User(userId, email, displayName, hash, role, 0)
                 try {
@@ -64,17 +67,17 @@ fun Route.register(dao: DAOFacade, hashFunction: (String) -> String) {
                 } catch (e: Throwable) {
                     when {
                         // NOTE: This is security issue that allows to enumerate/verify registered users. Do not do this in real app :)
-                        dao.user(userId) != null -> call.redirect(error.copy(error = "User with the following login is already registered"))
-                        dao.userByEmail(email) != null -> call.redirect(error.copy(error = "User with the following email $email is already registered"))
+                        dao.user(userId) != null -> call.respond(error.copy(error = "User with the following login is already registered"))
+                        dao.userByEmail(email) != null -> call.respond(error.copy(error = "User with the following email $email is already registered"))
                         else -> {
                             application.log.error("Failed to register user", e)
-                            call.redirect(error.copy(error = "Failed to register"))
+                            call.respond(error.copy(error = "Failed to register"))
                         }
                     }
                 }
 
                 call.sessions.set(PeGoSession(newUser.userId))
-//                call.redirect(UserPage(newUser.userId))
+                call.redirect(UserPage(newUser.userId))
             }
         }
         } catch (e: Exception) {

@@ -205,7 +205,7 @@ class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameSta
 
             div {
                 mDialog(
-                    state.loginRegisterDialogOpen,
+                    state.loginRegisterDialogOpen and (state.user == null),
                     onClose = { _, _ -> setState { loginRegisterDialogOpen = false } }) {
                     mDialogContent {
                         css {
@@ -230,7 +230,7 @@ class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameSta
                                 justifyContent = JustifyContent.center
                             }
                             when (state.loginRegisterDialogView) {
-                                "Login" -> loginTab()
+                                "Login" -> loginTab { onUserAssigned(it) }
                                 "Register" -> registerTab { onUserAssigned(it) }
                             }
                         }

@@ -1,7 +1,7 @@
 package com.iammoty.pego
 
 import com.iammoty.pego.dao.DAOFacade
-import com.iammoty.pego.model.LoginResponse
+import com.iammoty.pego.model.UserResponse
 import com.iammoty.pego.model.User
 import io.ktor.application.*
 import io.ktor.html.*
@@ -12,6 +12,9 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.sessions.*
 import io.ktor.util.*
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /**
  * Registers the [Login] and [Logout] routes '/login' and '/logout'.
@@ -23,9 +26,10 @@ fun Route.login(dao: DAOFacade, hash: (String) -> String) {
      */
     get<Login> {
         val user = call.sessions.get<PeGoSession>()?.let { dao.user(it.userId) }
-
+        println("get request recieved ")
         if (user != null) {
-            call.respond(LoginResponse(user))
+            println("User founded $user \n sent message ${UserResponse(user)}")
+            call.respond(Json.encodeToString(UserResponse(user)))
         } else {
             call.respond(HttpStatusCode.Forbidden)
         }
@@ -37,10 +41,11 @@ fun Route.login(dao: DAOFacade, hash: (String) -> String) {
      * or to the [UserPage] if the login was successful.
      */
     post<Login> {
-        val post = call.receive<User>()
-        val userId = post.userId ?: return@post call.redirect(it)
-        val password = post.passwordHash ?: return@post call.redirect(it)
-
+        println("Post request received")
+        val post = Json.decodeFromString<User>(call.receiveText())
+        val userId = post.userId
+        val password = post.passwordHash
+        println("parsing completed successfully -- $post")
         val login = when {
             userId.length < 4 -> null
             password.length < 6 -> null
@@ -49,10 +54,10 @@ fun Route.login(dao: DAOFacade, hash: (String) -> String) {
         }
 
         if (login == null) {
-            call.respond(LoginResponse(error = "Invalid username or password"))
+            call.respond(Json.encodeToString(UserResponse(error = "Invalid username or password")))
         } else {
             call.sessions.set(PeGoSession(login.userId))
-            call.respond(LoginResponse(login))
+            call.respond(Json.encodeToString(UserResponse(login)))
         }
     }
 
