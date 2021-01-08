@@ -53,13 +53,14 @@ class LoginTab : RComponent<UserProps, LoginTabState>() {
                 label = "Login",
                 required = true,
                 disabled = state.disabled,
+                autoComplete = "username",
                 variant = formType,
                 onChange = { val value = it.targetInputValue; setState { userId = value } }) {
                 css(themeStyles.textField)
             }
             mTextField(
                 label = "Password",
-                type = InputType.email,
+                type = InputType.password,
                 autoComplete = "current-password",
                 disabled = state.disabled,
                 required = true,

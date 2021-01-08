@@ -168,12 +168,6 @@ class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameSta
                         })
 //                        }
                     }
-//                    mHidden(smDown = true, implementation = MHiddenImplementation.css) {
-//                        mDrawer(true, MDrawerAnchor.left, MDrawerVariant.permanent, paperProps = p) {
-//                            spacer()
-//                            demoItems()
-//                        }
-//                    }
                     // Main content area
                     styledDiv {
                         css {
@@ -331,7 +325,6 @@ class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameSta
     private fun RBuilder.demoItems() {
         fun RBuilder.addListItem(caption: MainView) {
 //            mListItem(caption, onClick = {setState {currentView = caption}})
-            // We want to get rid of the extra right padding, so must use the longer version as below
             mListItemWithIcon(
                 nameToIcon[caption]!!,
                 caption.toString(),

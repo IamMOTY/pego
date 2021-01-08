@@ -73,7 +73,6 @@ val pool = ComboPooledDataSource().apply {
     jdbcUrl = "jdbc:mysql://kotlin-db.chex8buhxmiy.us-east-1.rds.amazonaws.com:3306/kotlin-db"
     user = "admin"
     password = "hujikolp"
-//    dataSourceName = "database-2"
 }
 
 /**
@@ -91,7 +90,6 @@ val dao: DAOFacade = DAOFacadeDatabase(Database.connect(pool))
  * Entry Point of the application. This function is referenced in the
  * resources/application.conf file inside the ktor.application.modules.
  *
- * For more information about this file: https://ktor.io/servers/configuration.html#hocon-file
  */
 fun Application.main() {
 
@@ -117,21 +115,14 @@ fun Application.mainWithDependencies(dao: DAOFacade) {
             setPrettyPrinting()
         }
     }
-    // Configure the session to be represented by a [KweetSession],
-    // using the SESSION cookie to store it, and transforming it to be authenticated with the [hashKey].
-    // it is sent in plain text, but since it is authenticated can't be modified without knowing the secret [hashKey].
     install(Sessions) {
         cookie<PeGoSession>("SESSION") {
             transform(SessionTransportTransformerMessageAuthentication(hashKey))
         }
     }
 
-    // Provides a hash function to be used when registering the resources.
     val hashFunction = { s: String -> hash(s) }
 
-    // Register all the routes available to the application.
-    // They are split in several methods and files, so it can scale for larger
-    // applications keeping a reasonable amount of lines per file.
     routing {
         static("/") {
             resources("/")

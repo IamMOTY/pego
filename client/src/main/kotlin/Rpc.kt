@@ -7,20 +7,12 @@ import kotlinx.serialization.json.*
 import kotlinx.serialization.*
 
 
-// fun index(): IndexResponse =
-//    getAndParseResult("/", null, ::parseIndexResponse)
-
-
 suspend fun register(userId: String, password: String, displayName: String, email: String, role: Role): User =
     postAndParseResult(
         "/register",
         kotlinx.serialization.json.Json.encodeToString(User(userId, email, displayName, password, role)),
         ::parseLoginOrRegisterResponse
     )
-// fun pollFromLastTime(lastTime: String = ""): String =
-//    getAndParseResult<String>("/poll?lastTime=$lastTime", null, { json ->
-//        json.count
-//    })
 
 suspend fun checkSession(): User =
     getAndParseResult("/login", null, ::parseLoginOrRegisterResponse)
@@ -32,18 +24,6 @@ suspend fun login(userId: String, password: String): User =
         ::parseLoginOrRegisterResponse
     )
 
-// fun postThoughtPrepare(): PostThoughtToken =
-//    getAndParseResult("/post-new", null, ::parseNewPostTokenResponse)
-//
-// fun postThought(replyTo: Int?, text: String, token: PostThoughtToken): Thought =
-//    postAndParseResult("/post-new", URLSearchParams().apply {
-//        append("text", text)
-//        append("date", token.date.toString())
-//        append("code", token.code)
-//        if (replyTo != null) {
-//            append("replyTo", replyTo.toString())
-//        }
-//    }, ::parsePostThoughtResponse)
 
 fun logoutUser() {
     window.fetch("/logout", object : RequestInit {

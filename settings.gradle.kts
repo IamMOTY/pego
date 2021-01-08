@@ -1,5 +1,5 @@
 
-rootProject.name = "instaclone_kt"
+rootProject.name = "PeGo"
 
 pluginManagement {
     resolutionStrategy {

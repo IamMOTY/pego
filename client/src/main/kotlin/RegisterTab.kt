@@ -78,6 +78,7 @@ class RegisterTab : RComponent<UserProps, RegisterTabState>() {
             mTextField(
                 label = "Login",
                 required = true,
+                autoComplete = "username",
                 variant = formType,
                 disabled = state.disabled,
                 onChange = { val value = it.targetInputValue; setState { userId = value } }) {

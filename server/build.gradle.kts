@@ -37,7 +37,7 @@ dependencies {
 application {
 //    mainClassName = "server.ServerKt"
     mainClassName = "io.ktor.server.netty.EngineMain"
-    applicationDefaultJvmArgs = listOf("--host", "localhost", "--port", "62813")
+//    applicationDefaultJvmArgs = listOf("--host", "localhost", "--port", "62813")
     executableDir = rootProject.path
 }
 

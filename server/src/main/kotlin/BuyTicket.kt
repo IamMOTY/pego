@@ -22,9 +22,11 @@ fun Route.buyTicket(dao:DAOFacade) {
     post<BuyTicket> {
         val user = call.sessions.get<PeGoSession>()?.let { dao.user(it.userId) }
         val pageUser = dao.user(it.userId)
-        if (user == null || pageUser == null || user.userId != pageUser.userId) {
+        if (user == null || pageUser == null || user.userId != pageUser.userId ) {
             println("User not found")
             call.respond(HttpStatusCode.NotFound.description("User ${it.userId} doesn't exist"))
+        }else  if (user.balance < TICKET_COST){
+            call.respond(HttpStatusCode.Forbidden.description("User doesn't have enough money"))
         } else {
             try {
                 dao.createTicket(user.userId)

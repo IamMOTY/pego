@@ -19,8 +19,6 @@ class App(props: RProps) : RComponent<RProps, AppState>(props) {
     override fun RBuilder.render() {
         mCssBaseline()
 
-        // Create an object with child objects already created and effectively cast it to ThemeOptions - our demo theme
-        // has a lighter primary color than the default theme
         @Suppress("UnsafeCastFromDynamic")
         val themeOptions: ThemeOptions = js("({palette: { type: 'placeholder', primary: {main: 'placeholder'}}})")
         themeOptions.palette?.type = state.themeColor
