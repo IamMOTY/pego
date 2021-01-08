@@ -29,8 +29,8 @@ import javax.crypto.spec.*
 class Index()
 
 
-@Location("/user/{user}")
-data class UserPage(val user: String)
+@Location("/user/{userId}")
+data class UserPage(val userId: String)
 
 @Location("/register")
 data class Register(val userId: String = "", val displayName: String = "", val email: String = "", val error: String = "")
@@ -40,6 +40,15 @@ data class Login(val userId: String = "", val error: String = "")
 
 @Location("/logout")
 class Logout()
+
+@Location("/tickets/{userId}")
+data class UserTickets(val userId: String)
+
+@Location("/buy/ticket/{userId}")
+data class BuyTicket(val userId: String)
+
+@Location("/balance/{userId}")
+data class UserBalance(val userId: String)
 
 /**
  * Represents a session in this site containing the userId.
@@ -129,13 +138,11 @@ fun Application.mainWithDependencies(dao: DAOFacade) {
         }
 
         styles()
-//        scripts()
         index(dao)
-//        postNew(dao, hashFunction)
-//        delete(dao, hashFunction)
         userPage(dao)
-//        viewKweet(dao, hashFunction)
-
+        userTickets(dao)
+        buyTicket(dao)
+        userBalance(dao)
         login(dao, hashFunction)
         register(dao, hashFunction)
     }

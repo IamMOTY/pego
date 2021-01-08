@@ -3,6 +3,7 @@ package com.iammoty.pego.dao
 import com.iammoty.pego.model.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.joda.time.DateTime
 import java.io.File
 import java.time.LocalDateTime
 
@@ -28,10 +29,11 @@ class DAOFacadeDatabase(
         }
     }
 
-    override fun createTicket(user: String, date: LocalDateTime): Int {
+    override fun createTicket(user: String, date: DateTime): Int {
         return transaction(db) {
             Tickets.insert {
                 it[Tickets.user] = user
+                it[Tickets.date] = date
             } get Tickets.id
         }
     }
@@ -93,10 +95,18 @@ class DAOFacadeDatabase(
             .singleOrNull()
     }
 
-//    override fun userTickets(userId: String) = transaction(db) {
-//        Tickets.slice(Tickets.id).select { Tickets.user.eq(userId) }.orderBy(Tickets.date, false).limit(100)
-//            .map { it[Tickets.id] }
-//    }
+    override fun userTickets(userId: String) = transaction(db) {
+        Tickets.slice(Tickets.id).select { Tickets.user.eq(userId) }.orderBy(Tickets.date, SortOrder.DESC).limit(100)
+            .map { it[Tickets.id] }
+    }
+
+    override fun setNewBalance(userId: String, newBalance: Int) {
+        transaction(db) {
+            Users.update({Users.id eq userId}){
+                it[Users.balance] = newBalance
+            }
+        }
+    }
 
     override fun close() {
     }

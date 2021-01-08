@@ -1,6 +1,4 @@
-import com.iammoty.pego.model.UserResponse
-import com.iammoty.pego.model.Role
-import com.iammoty.pego.model.User
+import com.iammoty.pego.model.*
 import kotlinx.browser.window
 import kotlinx.coroutines.await
 import org.w3c.fetch.*
@@ -49,35 +47,31 @@ suspend fun login(userId: String, password: String): User =
 
 fun logoutUser() {
     window.fetch("/logout", object : RequestInit {
-        override var method: String? = "POST"
+        override var method: String? = "GET"
         override var credentials: RequestCredentials? = "same-origin".asDynamic()
     })
 }
 
-// fun deleteThought(id: Int, date: Long, code: String) =
-//    postAndParseResult("/thought/$id/delete", URLSearchParams().apply {
-//        append("date", date.toString())
-//        append("code", code)
-//    }, { Unit })
+suspend fun updateBalance(userId: String): User =
+    postAndParseResult(
+        "/balance/$userId",
+        null,
+        ::parseLoginOrRegisterResponse
+    )
 
-//private fun parseIndexResponse(json: dynamic): IndexResponse {
-//    val top = json.top as Array<dynamic>
-//    val latest = json.latest as Array<dynamic>
-//
-//    return IndexResponse(top.map(::parseThought), latest.map(::parseThought))
-//}
-//
-//private fun parsePostThoughtResponse(json: dynamic): Thought {
-//    return parseThought(json.thought)
-//}
-//
-//private fun parseThought(json: dynamic): Thought {
-//    return Thought(json.id, json.userId, json.text, json.date, json.replyTo)
-//}
-//
-//private fun parseNewPostTokenResponse(json: dynamic): PostThoughtToken {
-//    return PostThoughtToken(json.user, json.date, json.code)
-//}
+suspend fun getUserTickets(userId: String): List<Int>? =
+    getAndParseResult(
+        "/tickets/$userId",
+        null,
+        ::parseTicketsResponse
+    )
+
+suspend fun buyTicket(userId: String) {
+    window.fetch("/buy/ticket/$userId", object : RequestInit {
+        override var method: String? = "POST"
+        override var credentials: RequestCredentials? = "same-origin".asDynamic()
+    })
+}
 
 private fun parseLoginOrRegisterResponse(json: dynamic): User {
     val dec = kotlinx.serialization.json.Json.decodeFromDynamic<UserResponse>(json)
@@ -90,7 +84,20 @@ private fun parseLoginOrRegisterResponse(json: dynamic): User {
     return dec.user!!
 }
 
+private fun parseTicketsResponse(json: dynamic): List<Int>? {
+    val dec = kotlinx.serialization.json.Json.decodeFromDynamic<TicketsResponse>(json)
+    println(dec)
+    if (dec.error != null) {
+        println("error isn't empty ${dec.error}")
+        throw GetTicketsException(dec.error.toString())
+    }
+    println("tickets list parsed successfully")
+
+    return dec.ticket
+}
+
 class LoginOrRegisterFailedException(message: String) : Throwable(message)
+class GetTicketsException(message: String) : Throwable(message)
 
  suspend fun <T> postAndParseResult(url: String, body: dynamic, parse: (dynamic) -> T): T =
     requestAndParseResult("POST", url, body, parse)

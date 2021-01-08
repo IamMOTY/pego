@@ -1,38 +1,56 @@
 package com.iammoty.pego
 
+import Tickets
+import async
+import checkSession
 import com.ccfraser.muirwik.components.*
 import com.ccfraser.muirwik.components.button.mIconButton
+import com.ccfraser.muirwik.components.card.mCard
+import com.ccfraser.muirwik.components.card.mCardContent
+import com.ccfraser.muirwik.components.card.mCardHeader
 import com.ccfraser.muirwik.components.dialog.mDialog
 import com.ccfraser.muirwik.components.dialog.mDialogContent
 import com.ccfraser.muirwik.components.list.mList
 import com.ccfraser.muirwik.components.list.mListItemWithIcon
+import com.ccfraser.muirwik.components.menu.mMenu
+import com.ccfraser.muirwik.components.menu.mMenuItemWithIcon
 import com.ccfraser.muirwik.components.styles.Breakpoint
 import com.ccfraser.muirwik.components.styles.down
 import com.ccfraser.muirwik.components.styles.up
+import com.ccfraser.muirwik.components.transitions.mCollapse
+import com.iammoty.pego.model.Role
 import com.iammoty.pego.model.User
 import kotlinext.js.js
 import kotlinext.js.jsObject
+import kotlinx.browser.window
 import kotlinx.css.*
-import kotlinx.css.properties.Timing
-import kotlinx.css.properties.Transition
-import kotlinx.css.properties.ms
+import kotlinx.css.properties.*
+import logoutUser
+import org.w3c.dom.Node
 import react.*
 import react.dom.div
+import react.dom.findDOMNode
 import styled.StyleSheet
 import styled.css
 import styled.styledDiv
+import tickets
+import updateBalance
 
 interface MainFrameProps : RProps {
     var onThemeSwitch: () -> Unit
-    var initialView: String
+    var initialView: MainView
 }
 
 interface MainFrameState : RState {
-    var view: String
+    var view: MainView
     var drawerOpen: Boolean
     var loginRegisterDialogOpen: Boolean
     var loginRegisterDialogView: String
+    var accountMenuOpen: Boolean
+    var moneyMenuOpen: Boolean
     var user: User?
+    var moneyAnchorElement: Node?
+    var accountAnchorElement: Node?
 }
 
 class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameState>(props) {
@@ -41,18 +59,29 @@ class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameSta
         drawerOpen = false
         loginRegisterDialogOpen = false
         loginRegisterDialogView = "Login"
+        accountMenuOpen = false
+        moneyMenuOpen = false
+        moneyAnchorElement = null
+        accountAnchorElement = null
+        checkUserSession()
     }
 
-    private val nameToComponent = hashMapOf(
-        "Intro" to RBuilder::intro,
-    )
+
 
     private val nameToIcon = hashMapOf(
-        "Intro" to "home"
+        MainView.Home to "home",
+        MainView.Tickets to "confirmation_number_icon"
     )
 
     private val nameToDivider = hashMapOf(
-        "Intro" to false
+        MainView.Home to false,
+        MainView.Tickets to false
+    )
+
+    private val roleToComponentList = hashMapOf(
+        Role.PASSENGER to listOf(MainView.Home, MainView.Tickets),
+        Role.CONTROLLER to listOf(MainView.Home, MainView.Check),
+        Role.UNKNOWN to listOf(MainView.Home)
     )
 
     private val drawerWidth = 180.px
@@ -95,7 +124,13 @@ class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameSta
                             }
 
                             mToolbarTitle("PeGo - ${state.user?.displayName}")
-                            mIconButton("account_circle", onClick = { setState { loginRegisterDialogOpen = true } }) { }
+                            if (state.user == null) {
+                                mIconButton(
+                                    "account_circle",
+                                    onClick = { setState { loginRegisterDialogOpen = true } }) { }
+                            } else {
+                                assignedAppBarItems()
+                            }
                         }
                     }
 
@@ -160,10 +195,63 @@ class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameSta
                                 padding(2.spacingUnits)
                                 backgroundColor = Color(theme.palette.background.default)
                             }
-                            nameToComponent[state.view]?.invoke(this)
+                            when (state.view) {
+                                MainView.Home -> {
+                                    intro()
+                                }
+                                MainView.Tickets -> {
+                                    state.user?.let { tickets(::checkUserSession, it) }
+                                }
+                            }
                         }
                     }
                 }
+            }
+        }
+    }
+
+
+    private fun RBuilder.assignedAppBarItems() {
+        mIconButton("attach_money", onClick = { setState { moneyMenuOpen = true } }) {
+            mTypography(text = state.user?.balance.toString()) {
+            }
+            ref {
+                state.moneyAnchorElement = findDOMNode(it)
+            }
+        }
+        div {
+            mMenu(
+                state.moneyMenuOpen,
+                anchorElement = state.moneyAnchorElement,
+                onClose = { _, _ -> setState { moneyMenuOpen = false } }) {
+
+                mMenuItemWithIcon("add", "Top up balance", onClick = {
+                    async {
+                        with(state) {
+                            val newUser = user?.let { it1 -> updateBalance(it1.userId) }
+                            user = newUser
+                            println(user)
+                        }
+                    }.catch { err -> window.alert(err.toString()) }
+                })
+            }
+        }
+        mIconButton("account_circle", onClick = { setState { accountMenuOpen = true } }) {
+
+            ref {
+                state.accountAnchorElement = findDOMNode(it)
+            }
+        }
+        div {
+            mMenu(
+                state.accountMenuOpen,
+                anchorElement = state.accountAnchorElement,
+                onClose = { _, _ -> setState { accountMenuOpen = false } }) {
+
+                mMenuItemWithIcon(
+                    "exit_to_app",
+                    "Logout",
+                    onClick = { logoutUser(); setState { accountMenuOpen = false;user = null } })
             }
         }
     }
@@ -241,12 +329,12 @@ class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameSta
     }
 
     private fun RBuilder.demoItems() {
-        fun RBuilder.addListItem(caption: String) {
+        fun RBuilder.addListItem(caption: MainView) {
 //            mListItem(caption, onClick = {setState {currentView = caption}})
             // We want to get rid of the extra right padding, so must use the longer version as below
             mListItemWithIcon(
                 nameToIcon[caption]!!,
-                caption,
+                caption.toString(),
                 divider = nameToDivider[caption]!!,
                 onClick = { setState { view = caption; drawerOpen = false } }) {
                 css {
@@ -264,14 +352,26 @@ class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameSta
 
             mList {
 
-                nameToComponent.keys.forEach { addListItem(it) }
+                roleToComponentList[state.user?.role ?: Role.UNKNOWN]?.forEach { addListItem(it) }
             }
         }
     }
+
     private fun onUserAssigned(newUser: User) {
         setState {
             user = newUser
-            view = "Intro"
+//            view = MainView.Home
+        }
+    }
+
+    private fun checkUserSession() {
+        async {
+            val user = checkSession()
+            onUserAssigned(user)
+        }.catch {
+            setState {
+                view = MainView.Home
+            }
         }
     }
 }
@@ -292,10 +392,14 @@ fun RBuilder.spacer() {
     }
 }
 
-
+enum class MainView {
+    Home,
+    Tickets,
+    Check
+}
 
 fun RBuilder.mainFrame(initialView: String, onThemeSwitch: () -> Unit) = child(MainFrame::class) {
     attrs.onThemeSwitch = onThemeSwitch
-    attrs.initialView = initialView
+    attrs.initialView = MainView.valueOf(initialView)
 }
 

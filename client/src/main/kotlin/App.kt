@@ -27,7 +27,7 @@ class App(props: RProps) : RComponent<RProps, AppState>(props) {
         themeOptions.palette?.primary.main = Colors.Blue.shade500.toString()
 
         mThemeProvider(createMuiTheme(themeOptions)) {
-            mainFrame("Intro") { setState { themeColor = if (themeColor == "dark") "light" else "dark" } }
+            mainFrame("Home") { setState { themeColor = if (themeColor == "dark") "light" else "dark" } }
         }
     }
 }
@@ -36,4 +36,9 @@ fun RBuilder.app() = child(App::class) {}
 
 class UserProps : RProps {
     var userAssigned: (User) -> Unit = {}
+}
+
+class AssignedUserProps : RProps {
+    var checkUserInfo: () -> Unit = {}
+    var user: User? = null
 }

@@ -5,6 +5,7 @@ import org.ehcache.*
 import org.ehcache.config.*
 import org.ehcache.config.persistence.*
 import org.ehcache.config.units.*
+import org.joda.time.DateTime
 import java.io.*
 import java.time.LocalDateTime
 
@@ -59,7 +60,7 @@ class DAOFacadeCache(val delegate: DAOFacade, val storagePath: File) : DAOFacade
         delegate.init()
     }
 
-    override fun createTicket(user: String, date: LocalDateTime): Int {
+    override fun createTicket(user: String, date: DateTime): Int {
         val id = delegate.createTicket(user, date)
         val ticket = Ticket(id, user, date.toString())
         ticketsCache.put(id, ticket)
@@ -118,9 +119,14 @@ class DAOFacadeCache(val delegate: DAOFacade, val storagePath: File) : DAOFacade
         return delegate.userByEmail(email)
     }
 
-//    override fun userTickets(userId: String): List<Int> {
-//        return delegate.userTickets(userId)
-//    }
+    override fun userTickets(userId: String): List<Int>? {
+        return delegate.userTickets(userId)
+    }
+
+    override fun setNewBalance(userId: String, newBalance: Int) {
+        usersCache.remove(userId)
+        delegate.setNewBalance(userId, newBalance)
+    }
 
     override fun close() {
         try {

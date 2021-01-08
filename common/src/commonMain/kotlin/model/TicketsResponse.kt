@@ -3,4 +3,4 @@ package com.iammoty.pego.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class TicketResponse(val ticket: Ticket? = null, val error: String? = null)
+data class TicketsResponse(val ticket: List<Int>? = null, val error: String? = null)

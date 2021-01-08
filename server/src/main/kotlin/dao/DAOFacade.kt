@@ -1,6 +1,7 @@
 package com.iammoty.pego.dao
 
 import com.iammoty.pego.model.*
+import org.joda.time.DateTime
 import java.io.*
 import java.time.LocalDateTime
 
@@ -13,7 +14,7 @@ interface DAOFacade : Closeable {
     /**
      * Creates a Ticket from a specific [user] name, an optional d [date] that would default to the current time.
      */
-    fun createTicket(user: String, date: LocalDateTime = LocalDateTime.now()): Int
+    fun createTicket(user: String, date: DateTime = DateTime()): Int
 
     /**
      * Deletes a Ticket form its [id].
@@ -29,7 +30,7 @@ interface DAOFacade : Closeable {
      * Obtains a list of integral ids of tickets from a specific user identified by its [userId].
      *
      */
-//    fun userTickets(userId: String): List<Int>
+    fun userTickets(userId: String): List<Int>?
 
     /**
      * Tries to get an user from its [userId] and optionally is password [hash]
@@ -42,6 +43,12 @@ interface DAOFacade : Closeable {
      * Returns null if no user has this [email] associated.
      */
     fun userByEmail(email: String): User?
+
+    /**
+     * Set new balance [newBalance] to user by [userId]
+     *
+     */
+    fun setNewBalance(userId: String, newBalance: Int)
 
     /**
      * Creates a new [user] in the database from its object [User] representation.

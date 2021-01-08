@@ -18,20 +18,20 @@ import kotlinx.serialization.json.Json
  */
 fun Route.userPage(dao: DAOFacade) {
     /**
-     * A GET request will return a page with the profile of a given user from its [UserPage.user] name.
+     * A GET request will return a page with the profile of a given user from its [UserPage.userId] name.
      * If the user doesn't exists, it will return a 404 page instead.
      */
     get<UserPage> {
         val user = call.sessions.get<PeGoSession>()?.let { dao.user(it.userId) }
-        val pageUser = dao.user(it.user)
+        val pageUser = dao.user(it.userId)
 
-        if (user == null || pageUser == null) {
+        if (user == null || pageUser == null || user.userId != pageUser.userId) {
             println("User not found")
-            call.respond(HttpStatusCode.NotFound.description("User ${it.user} doesn't exist"))
+            call.respond(HttpStatusCode.NotFound.description("User ${it.userId} doesn't exist"))
         } else {
 //            val tickets = dao.userTickets(it.user).map { dao.getTicket(it) }
 //            val etag = (user?.userId ?: "") + "_" + kweets.map { it.text.hashCode() }.hashCode().toString()
-            println("Responding user $pageUser")
+            println("Responding user $user")
             call.respond(Json.encodeToString(UserResponse(pageUser)))
         }
     }
