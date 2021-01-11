@@ -80,7 +80,7 @@ class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameSta
 
     private val roleToComponentList = hashMapOf(
         Role.PASSENGER to listOf(MainView.Home, MainView.Tickets),
-        Role.CONTROLLER to listOf(MainView.Home, MainView.Check),
+        Role.CONTROLLER to listOf(MainView.Home),
         Role.UNKNOWN to listOf(MainView.Home)
     )
 
@@ -219,11 +219,16 @@ class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameSta
                 anchorElement = state.moneyAnchorElement,
                 onClose = { _, _ -> setState { moneyMenuOpen = false } }) {
 
+                mMenuItemWithIcon("attach_money", state.user?.balance.toString())
                 mMenuItemWithIcon("add", "Top up balance", onClick = {
                     async {
                         with(state) {
                             val newUser = user?.let { it1 -> updateBalance(it1.userId) }
-                            user = newUser
+                            setState {
+                                user = newUser
+                                moneyMenuOpen = false
+                                moneyMenuOpen = true
+                            }
                             println(user)
                         }
                     }.catch { err -> window.alert(err.toString()) }
