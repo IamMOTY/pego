@@ -15,6 +15,7 @@ import io.ktor.util.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.lang.Exception
 
 /**
  * Registers the [Login] and [Logout] routes '/login' and '/logout'.
@@ -46,18 +47,21 @@ fun Route.login(dao: DAOFacade, hash: (String) -> String) {
         val userId = post.userId
         val password = post.passwordHash
         println("parsing completed successfully -- $post")
-        val login = when {
-            userId.length < 4 -> null
-            password.length < 6 -> null
-            !userNameValid(userId) -> null
-            else -> dao.user(userId, hash(password))
-        }
-
-        if (login == null) {
-            call.respond(Json.encodeToString(UserResponse(error = "Invalid username or password")))
-        } else {
-            call.sessions.set(PeGoSession(login.userId))
-            call.respond(Json.encodeToString(UserResponse(login)))
+        try {
+            val login = when {
+                userId.length < 4 -> null
+                password.length < 6 -> null
+                !userNameValid(userId) -> null
+                else -> dao.user(userId, hash(password))
+            }
+            if (login == null) {
+                call.respond(Json.encodeToString(UserResponse(error = "Invalid username or password")))
+            } else {
+                call.sessions.set(PeGoSession(login.userId))
+                call.respond(Json.encodeToString(UserResponse(login)))
+            }
+        } catch (e: Exception) {
+            println(e)
         }
     }
 

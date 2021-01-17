@@ -32,7 +32,7 @@ fun Route.buyTicket(dao:DAOFacade) {
                 dao.createTicket(user.userId)
                 dao.setNewBalance(user.userId, user.balance - TICKET_COST)
                 call.respond(HttpStatusCode.Created)
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 println(e)
                 application.log.error("Failed to create ticket for user $user, ", e)
                 call.respond(TicketsResponse(error = "Failed to get users tickets"))

@@ -123,7 +123,7 @@ class MainFrame(props: MainFrameProps) : RComponent<MainFrameProps, MainFrameSta
                                     onClick = { setState { drawerOpen = true } })
                             }
 
-                            mToolbarTitle("PeGo - ${state.user?.displayName}")
+                            mToolbarTitle("PeGo - ${state.user?.displayName ?: "Wellcome"}")
                             if (state.user == null) {
                                 mIconButton(
                                     "account_circle",

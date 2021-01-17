@@ -30,8 +30,8 @@ class Intro : RComponent<RProps, RState>() {
                 padding(3.spacingUnits)
                 textAlign = TextAlign.left
             }
-            img("Muirwik Box", "/images/img.jpg") {}
-            mTypography("Welcome to hell", MTypographyVariant.h3) { css { paddingBottom = 3.spacingUnits }}
+
+            mTypography("PeGo - eTicket system for public transport", MTypographyVariant.h3) { css { paddingBottom = 3.spacingUnits }}
 
 
         }
