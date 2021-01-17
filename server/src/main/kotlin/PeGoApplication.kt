@@ -70,7 +70,7 @@ val dir = File("build/db")
  */
 val pool = ComboPooledDataSource().apply {
     driverClass = Driver::class.java.name
-    jdbcUrl = "jdbc:mysql://kotlin-db.chex8buhxmiy.us-east-1.rds.amazonaws.com:3306/kotlin-db"
+    jdbcUrl = ""
     user = "admin"
     password = "hujikolp"
 }
